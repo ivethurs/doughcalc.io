@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sourdough Calculator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --cream:   #f5f0e8;
+      --tan:     #e8dcc8;
+      --brown:   #8b6b4a;
+      --dark:    #2c1f0e;
+      --crust:   #c4843a;
+      --muted:   #9e8a72;
+      --white:   #fdfaf5;
+      --shadow:  rgba(44,31,14,0.12);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--cream);
+      color: var(--dark);
+      font-family: 'DM Mono', monospace;
+      min-height: 100vh;
+      background-image:
+        radial-gradient(ellipse at 20% 10%, #e8d9bc55 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 90%, #d4b98a33 0%, transparent 60%),
+        url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%238b6b4a' fill-opacity='0.04'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+
+    /* ── Layout ── */
+    .page {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+
+    /* ── Header ── */
+    header {
+      text-align: center;
+      margin-bottom: 52px;
+      animation: fadeDown 0.7s ease both;
+    }
+    .loaf-icon {
+      font-size: 52px;
+      display: block;
+      margin-bottom: 12px;
+      filter: drop-shadow(0 4px 8px var(--shadow));
+      animation: rise 2s ease-in-out infinite alternate;
+    }
+    @keyframes rise {
+      from { transform: translateY(0); }
+      to   { transform: translateY(-5px); }
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: var(--dark);
+      line-height: 1.1;
+    }
+    .subtitle {
+      margin-top: 10px;
+      font-size: 0.8rem;
+      color: var(--muted);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--white);
+      border-radius: 20px;
+      padding: 36px;
+      box-shadow: 0 2px 4px var(--shadow), 0 12px 40px var(--shadow);
+      border: 1px solid var(--tan);
+      animation: fadeUp 0.6s ease both;
+    }
+    .card + .card { margin-top: 24px; animation-delay: 0.1s; }
+
+    @keyframes fadeUp   { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:none; } }
+    @keyframes fadeDown { from { opacity:0; transform:translateY(-16px); } to { opacity:1; transform:none; } }
+
+    .card-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--brown);
+      margin-bottom: 28px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .card-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--tan);
+    }
+
+    /* ── Form grid ── */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+    }
+
+    .field { display: flex; flex-direction: column; gap: 8px; }
+
+    label {
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 400;
+    }
+
+    .input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .input-wrap input {
+      width: 100%;
+      padding: 12px 46px 12px 14px;
+      background: var(--cream);
+      border: 1.5px solid var(--tan);
+      border-radius: 10px;
+      font-family: 'DM Mono', monospace;
+      font-size: 1rem;
+      color: var(--dark);
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+      -moz-appearance: textfield;
+    }
+    input::-webkit-inner-spin-button,
+    input::-webkit-outer-spin-button { -webkit-appearance: none; }
+    .input-wrap input:focus {
+      border-color: var(--brown);
+      box-shadow: 0 0 0 3px rgba(139,107,74,0.12);
+    }
+    .unit {
+      position: absolute;
+      right: 13px;
+      font-size: 0.7rem;
+      color: var(--muted);
+      pointer-events: none;
+      letter-spacing: 0.05em;
+    }
+
+    /* slider */
+    .slider-field { grid-column: 1 / -1; }
+    .slider-row { display: flex; align-items: center; gap: 16px; }
+    input[type=range] {
+      flex: 1;
+      -webkit-appearance: none;
+      height: 5px;
+      background: var(--tan);
+      border-radius: 99px;
+      outline: none;
+      cursor: pointer;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: var(--crust);
+      box-shadow: 0 2px 6px rgba(196,132,58,0.4);
+      transition: transform 0.15s;
+    }
+    input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+    .slider-val {
+      min-width: 50px;
+      text-align: right;
+      font-size: 1rem;
+      color: var(--crust);
+      font-weight: 400;
+    }
+
+    /* ── Button ── */
+    .btn {
+      margin-top: 28px;
+      width: 100%;
+      padding: 16px;
+      background: var(--dark);
+      color: var(--cream);
+      border: none;
+      border-radius: 12px;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.85rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 4px 14px rgba(44,31,14,0.25);
+    }
+    .btn:hover {
+      background: var(--brown);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(44,31,14,0.3);
+    }
+    .btn:active { transform: translateY(0); }
+
+    /* ── Error ── */
+    .error-box {
+      display: none;
+      background: #fdf0f0;
+      border: 1.5px solid #e8b4b4;
+      color: #8b3030;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 0.82rem;
+      margin-top: 16px;
+    }
+
+    /* ── Results ── */
+    #results { display: none; animation-delay: 0.15s; }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 16px;
+    }
+
+    .result-item {
+      background: var(--cream);
+      border-radius: 14px;
+      padding: 18px 16px;
+      border: 1.5px solid var(--tan);
+      text-align: center;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .result-item:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px var(--shadow);
+    }
+    .result-item.highlight {
+      background: var(--dark);
+      color: var(--cream);
+      border-color: var(--dark);
+    }
+    .result-item.highlight .result-label { color: var(--tan); }
+    .result-item.highlight .result-value { color: var(--cream); }
+
+    .result-label {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .result-value {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--dark);
+      line-height: 1;
+    }
+    .result-unit {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 4px;
+      font-family: 'DM Mono', monospace;
+    }
+
+    /* starter breakdown */
+    .starter-breakdown {
+      margin-top: 20px;
+      padding: 18px 20px;
+      background: #fdf6ec;
+      border-radius: 12px;
+      border-left: 3px solid var(--crust);
+    }
+    .starter-breakdown h4 {
+      font-family: 'Playfair Display', serif;
+      font-size: 0.95rem;
+      color: var(--brown);
+      margin-bottom: 12px;
+      font-style: italic;
+    }
+    .breakdown-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.82rem;
+      color: var(--dark);
+      padding: 4px 0;
+      border-bottom: 1px dashed var(--tan);
+    }
+    .breakdown-row:last-child { border-bottom: none; }
+    .breakdown-row span:last-child { font-weight: 400; color: var(--brown); }
+
+    /* baker's % table */
+    .bp-table {
+      width: 100%;
+      margin-top: 20px;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+    .bp-table th {
+      text-align: left;
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      padding-bottom: 10px;
+      border-bottom: 1.5px solid var(--tan);
+    }
+    .bp-table td {
+      padding: 10px 0;
+      border-bottom: 1px solid var(--tan);
+      color: var(--dark);
+    }
+    .bp-table td:last-child {
+      text-align: right;
+      font-family: 'Playfair Display', serif;
+      font-size: 1rem;
+      color: var(--brown);
+    }
+    .bp-table tr:last-child td { border-bottom: none; }
+
+    /* loading spinner */
+    .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid var(--cream);
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* scale toggle */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .toggle-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+    .toggle {
+      position: relative;
+      width: 44px; height: 24px;
+      flex-shrink: 0;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-track {
+      position: absolute; inset: 0;
+      background: var(--tan);
+      border-radius: 99px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .toggle-track::after {
+      content: '';
+      position: absolute;
+      left: 3px; top: 3px;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: white;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 4px var(--shadow);
+    }
+    .toggle input:checked + .toggle-track { background: var(--brown); }
+    .toggle input:checked + .toggle-track::after { transform: translateX(20px); }
+    .scale-fields { display: none; }
+    .scale-fields.active { display: contents; }
+
+    @media (max-width: 540px) {
+      .card { padding: 24px 18px; }
+      .results-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <span class="loaf-icon">🍞</span>
+    <h1>Sourdough<br>Calculator</h1>
+    <p class="subtitle">Baker's math, made simple</p>
+  </header>
+
+  <!-- INPUT CARD -->
+  <div class="card">
+    <p class="card-title">Recipe Inputs</p>
+
+    <div class="grid">
+      <!-- Base flour -->
+      <div class="field">
+        <label>Base Flour</label>
+        <div class="input-wrap">
+          <input type="number" id="flour" value="500" min="50" max="10000" step="10"/>
+          <span class="unit">g</span>
+        </div>
+      </div>
+
+      <!-- Hydration slider -->
+      <div class="field slider-field">
+        <label>Hydration — <em id="hydration-hint">moderately open crumb</em></label>
+        <div class="slider-row">
+          <input type="range" id="hydration" min="55" max="100" value="75" step="1"/>
+          <span class="slider-val" id="hydration-val">75%</span>
+        </div>
+      </div>
+
+      <!-- Starter % slider -->
+      <div class="field slider-field">
+        <label>Starter / Levain</label>
+        <div class="slider-row">
+          <input type="range" id="starter_pct" min="5" max="40" value="20" step="1"/>
+          <span class="slider-val" id="starter-val">20%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scale by loaves toggle -->
+    <div style="margin-top:28px">
+      <div class="toggle-row">
+        <label class="toggle">
+          <input type="checkbox" id="scale-toggle"/>
+          <div class="toggle-track"></div>
+        </label>
+        <span class="toggle-label">Scale by loaf count &amp; size</span>
+      </div>
+
+      <div class="grid">
+        <div class="field scale-fields" id="loaf-count-field">
+          <label>Number of Loaves</label>
+          <div class="input-wrap">
+            <input type="number" id="loaf_count" value="1" min="1" max="50" step="1"/>
+            <span class="unit">loaves</span>
+          </div>
+        </div>
+        <div class="field scale-fields" id="loaf-size-field">
+          <label>Target Weight / Loaf</label>
+          <div class="input-wrap">
+            <input type="number" id="loaf_size" value="900" min="200" max="3000" step="50"/>
+            <span class="unit">g</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-box" id="error-box"></div>
+    <button class="btn" id="calc-btn" onclick="calculate()">Calculate Recipe</button>
+  </div>
+
+  <!-- RESULTS CARD -->
+  <div class="card" id="results">
+    <p class="card-title">Ingredient Weights</p>
+
+    <div class="results-grid">
+      <div class="result-item highlight">
+        <div class="result-label">Total Dough</div>
+        <div class="result-value" id="r-total">—</div>
+        <div class="result-unit">grams</div>
+      </div>
+      <div class="result-item">
+        <div class="result-label">Flour</div>
+        <div class="result-value" id="r-flour">—</div>
+        <div class="result-unit">grams</div>
+      </div>
+      <div class="result-item">
+        <div class="result-label">Water</div>
+        <div class="result-value" id="r-water">—</div>
+        <div class="result-unit">grams</div>
+      </div>
+      <div class="result-item">
+        <div class="result-label">Starter</div>
+        <div class="result-value" id="r-starter">—</div>
+        <div class="result-unit">grams</div>
+      </div>
+      <div class="result-item">
+        <div class="result-label">Salt</div>
+        <div class="result-value" id="r-salt">—</div>
+        <div class="result-unit">grams</div>
+      </div>
+      <div class="result-item" id="r-loaf-item">
+        <div class="result-label">Per Loaf</div>
+        <div class="result-value" id="r-per-loaf">—</div>
+        <div class="result-unit">grams</div>
+      </div>
+    </div>
+
+    <!-- Starter breakdown -->
+    <div class="starter-breakdown">
+      <h4>Starter Breakdown (100% hydration)</h4>
+      <div class="breakdown-row">
+        <span>Starter flour</span>
+        <span id="r-starter-flour">—</span>
+      </div>
+      <div class="breakdown-row">
+        <span>Starter water</span>
+        <span id="r-starter-water">—</span>
+      </div>
+      <div class="breakdown-row">
+        <span>Actual dough hydration</span>
+        <span id="r-actual-hydration">—</span>
+      </div>
+    </div>
+
+    <!-- Baker's % table -->
+    <table class="bp-table">
+      <thead>
+        <tr>
+          <th>Ingredient</th>
+          <th>Baker's %</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Flour</td><td>100%</td></tr>
+        <tr><td>Water</td><td id="bp-water">—</td></tr>
+        <tr><td>Starter</td><td id="bp-starter">—</td></tr>
+        <tr><td>Salt</td><td>2.0%</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+  // ── Slider live update ──
+  const hydSlider = document.getElementById('hydration');
+  const hydVal    = document.getElementById('hydration-val');
+  const hydHint   = document.getElementById('hydration-hint');
+  const sttSlider = document.getElementById('starter_pct');
+  const sttVal    = document.getElementById('starter-val');
+
+  const hydrationHints = {
+    55: 'stiff dough', 60: 'dense crumb', 65: 'tight crumb',
+    70: 'classic country loaf', 75: 'moderately open crumb',
+    80: 'open, chewy crumb', 85: 'very open crumb',
+    90: 'extremely wet — advanced', 95: 'ciabatta territory', 100: 'liquid levain'
+  };
+  function getHint(v) {
+    const keys = Object.keys(hydrationHints).map(Number).sort((a,b)=>a-b);
+    let closest = keys[0];
+    for (const k of keys) { if (k <= v) closest = k; }
+    return hydrationHints[closest];
+  }
+
+  hydSlider.addEventListener('input', () => {
+    hydVal.textContent = hydSlider.value + '%';
+    hydHint.textContent = getHint(parseInt(hydSlider.value));
+  });
+  sttSlider.addEventListener('input', () => {
+    sttVal.textContent = sttSlider.value + '%';
+  });
+
+  // ── Scale toggle ──
+  document.getElementById('scale-toggle').addEventListener('change', function() {
+    const fields = document.querySelectorAll('.scale-fields');
+    fields.forEach(f => f.classList.toggle('active', this.checked));
+    document.getElementById('flour').closest('.field').style.opacity = this.checked ? '0.45' : '1';
+    document.getElementById('flour').disabled = this.checked;
+  });
+
+  // ── Calculate ──
+  async function calculate() {
+    const btn = document.getElementById('calc-btn');
+    const errBox = document.getElementById('error-box');
+    errBox.style.display = 'none';
+
+    btn.innerHTML = '<span class="spinner"></span>Calculating…';
+    btn.disabled = true;
+
+    const useScale = document.getElementById('scale-toggle').checked;
+    const payload = {
+      flour:       parseFloat(document.getElementById('flour').value) || 500,
+      hydration:   parseFloat(document.getElementById('hydration').value),
+      starter_pct: parseFloat(document.getElementById('starter_pct').value),
+      loaf_count:  useScale ? parseInt(document.getElementById('loaf_count').value) : 1,
+      loaf_size:   useScale ? parseFloat(document.getElementById('loaf_size').value) : 0,
+    };
+
+    try {
+      const res  = await fetch('/calculate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+
+      if (!res.ok) { showError(data.error || 'Calculation failed.'); return; }
+
+      // Populate results
+      document.getElementById('r-total').textContent   = data.total_dough;
+      document.getElementById('r-flour').textContent   = data.flour;
+      document.getElementById('r-water').textContent   = data.water;
+      document.getElementById('r-starter').textContent = data.starter;
+      document.getElementById('r-salt').textContent    = data.salt;
+      document.getElementById('r-per-loaf').textContent= data.per_loaf;
+
+      document.getElementById('r-starter-flour').textContent    = data.starter_flour + 'g';
+      document.getElementById('r-starter-water').textContent    = data.starter_water + 'g';
+      document.getElementById('r-actual-hydration').textContent = data.actual_hydration + '%';
+
+      document.getElementById('bp-water').textContent   = data.bp_water + '%';
+      document.getElementById('bp-starter').textContent = data.bp_starter + '%';
+
+      const loafItem = document.getElementById('r-loaf-item');
+      loafItem.querySelector('.result-label').textContent =
+        data.loaves > 1 ? `Per Loaf (÷${data.loaves})` : 'Per Loaf';
+
+      // Show results with animation
+      const resultsCard = document.getElementById('results');
+      resultsCard.style.display = 'block';
+      resultsCard.style.animation = 'none';
+      resultsCard.offsetHeight; // reflow
+      resultsCard.style.animation = 'fadeUp 0.5s ease both';
+      resultsCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    } catch(e) {
+      showError('Network error. Is the Flask server running?');
+    } finally {
+      btn.innerHTML = 'Calculate Recipe';
+      btn.disabled = false;
+    }
+  }
+
+  function showError(msg) {
+    const box = document.getElementById('error-box');
+    box.textContent = '⚠ ' + msg;
+    box.style.display = 'block';
+  }
+
+  // Auto-calculate on load
+  window.addEventListener('load', calculate);
+</script>
+</body>
+</html>
