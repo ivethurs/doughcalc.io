@@ -1,0 +1,18 @@
+
+venv/
+
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment variables (keep secrets out of GitHub)
+.env
+
+# VS Code settings
+.vscode/
+
+# Mac junk files
+.DS_Store
+
+# Flask session files
+flask_session/
